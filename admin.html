@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Kings Barbershop</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#0e0e0e;--bg2:#161616;--card:#1c1c1c;--gold:#c9a227;--gold2:#e6c65a;--txt:#f5f0e6;--mut:#a89f8d;--red:#e5484d;--green:#46a758;--border:#2c2c2c}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+.hidden{display:none!important}
+/* LOGIN */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:40px;width:100%;max-width:400px;text-align:center}
+.login-box h1{color:var(--gold);font-size:28px;letter-spacing:2px;margin-bottom:6px}
+.login-box p{color:var(--mut);margin-bottom:24px;font-size:14px}
+/* FORMS */
+label{display:block;text-align:left;font-size:13px;color:var(--mut);margin:12px 0 4px}
+input,select,textarea{width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--txt);border-radius:8px;padding:11px 12px;font-size:15px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
+textarea{resize:vertical;min-height:70px}
+button{cursor:pointer;border:none;border-radius:8px;font-size:15px;font-weight:600;transition:.2s}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#111;padding:12px 24px;width:100%;margin-top:18px}
+.btn-gold:hover{filter:brightness(1.1)}
+.btn-sm{padding:7px 14px;font-size:13px;width:auto;margin:0}
+.btn-edit{background:#2c2c2c;color:var(--gold2)}
+.btn-del{background:#3a1d1d;color:#ff8080}
+.btn-green{background:#1d3a24;color:#7de89a}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--mut)}
+.error{background:#3a1d1d;color:#ff9a9a;padding:10px;border-radius:8px;margin-top:12px;font-size:14px}
+.okmsg{background:#1d3a24;color:#7de89a;padding:10px;border-radius:8px;margin-top:12px;font-size:14px}
+/* LAYOUT */
+#app{display:flex;min-height:100vh}
+#sidebar{width:230px;background:var(--bg2);border-right:1px solid var(--border);padding:20px 0;position:fixed;height:100vh;overflow-y:auto;z-index:10}
+#sidebar .brand{text-align:center;padding:0 16px 20px;border-bottom:1px solid var(--border);margin-bottom:12px}
+#sidebar .brand h2{color:var(--gold);font-size:18px;letter-spacing:1px}
+#sidebar .brand small{color:var(--mut)}
+.navbtn{display:block;width:100%;text-align:left;background:none;color:var(--mut);padding:12px 22px;font-size:15px;border-left:3px solid transparent}
+.navbtn:hover{color:var(--txt);background:#1e1e1e}
+.navbtn.active{color:var(--gold2);border-left-color:var(--gold);background:#1e1e1e}
+#logoutBtn{margin:16px;color:var(--mut);background:none;border:1px solid var(--border);padding:10px;width:calc(100% - 32px);border-radius:8px}
+#main{flex:1;margin-left:230px;padding:28px;max-width:1100px}
+#main h2{font-size:24px;margin-bottom:4px}
+.subtitle{color:var(--mut);font-size:14px;margin-bottom:22px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;color:var(--mut);font-weight:600;padding:10px;border-bottom:1px solid var(--border);font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+td{padding:12px 10px;border-bottom:1px solid #222;vertical-align:middle}
+tr:hover td{background:#1a1a1a}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
+.b-green{background:#1d3a24;color:#7de89a}.b-red{background:#3a1d1d;color:#ff8080}.b-gold{background:#3a2f10;color:var(--gold2)}.b-gray{background:#2c2c2c;color:var(--mut)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:22px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center}
+.stat .num{font-size:32px;font-weight:700;color:var(--gold2)}
+.stat .lbl{font-size:13px;color:var(--mut);margin-top:4px}
+.toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.toolbar .spacer{flex:1}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:26px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto}
+.modal h3{margin-bottom:6px}
+.imgprev{max-width:100%;max-height:150px;border-radius:8px;margin-top:8px}
+.dayrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #222}
+.dayrow .dname{width:110px;font-weight:600}
+.dayrow input[type=time]{width:110px}
+.switch{position:relative;width:44px;height:24px;flex-shrink:0}
+.switch input{opacity:0;width:100%;height:100%;position:absolute;cursor:pointer;margin:0;z-index:2}
+.sl{position:absolute;inset:0;background:#333;border-radius:24px;transition:.2s}
+.sl:before{content:"";position:absolute;width:18px;height:18px;border-radius:50%;background:#888;top:3px;left:3px;transition:.2s}
+.switch input:checked + .sl{background:var(--gold)}
+.switch input:checked + .sl:before{transform:translateX(20px);background:#111}
+#menuBtn{display:none;position:fixed;top:14px;left:14px;z-index:20;background:var(--gold);color:#111;padding:10px 14px;border-radius:8px;font-weight:700}
+@media(max-width:760px){
+  #sidebar{transform:translateX(-100%);transition:.25s}
+  #sidebar.open{transform:none}
+  #main{margin-left:0;padding:70px 14px 20px}
+  #menuBtn{display:block}
+  .grid2{grid-template-columns:1fr}
+  table{font-size:13px}
+}
+.loading{text-align:center;padding:40px;color:var(--mut)}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>KINGS</h1>
+    <p>Painel do proprietário — Barbershop</p>
+    <form id="loginForm">
+      <label>Email</label>
+      <input type="email" id="email" required autocomplete="username">
+      <label>Senha</label>
+      <input type="password" id="password" required autocomplete="current-password">
+      <button type="submit" class="btn-gold">Entrar</button>
+      <div id="loginErr" class="error hidden"></div>
+    </form>
+    <p style="margin-top:16px"><a href="#" id="forgotLink" style="color:var(--gold2);font-size:13px">Esqueci minha senha</a></p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+  <button id="menuBtn">☰</button>
+  <nav id="sidebar">
+    <div class="brand"><h2>KINGS</h2><small>Painel Admin</small></div>
+    <button class="navbtn active" data-s="dash">📊 Resumo</button>
+    <button class="navbtn" data-s="requests">📩 Solicitações <span id="reqBadge"></span></button>
+    <button class="navbtn" data-s="services">✂️ Serviços</button>
+    <button class="navbtn" data-s="barbers">💈 Equipe</button>
+    <button class="navbtn" data-s="hours">🕐 Horários</button>
+    <button class="navbtn" data-s="closures">🚫 Bloqueios</button>
+    <button class="navbtn" data-s="promos">🎁 Promoções</button>
+    <button class="navbtn" data-s="faqs">❓ FAQ</button>
+    <button class="navbtn" data-s="gallery">🖼️ Galeria</button>
+    <button class="navbtn" data-s="settings">⚙️ Configurações</button>
+    <button class="navbtn" data-s="export">💾 Exportar</button>
+    <button id="logoutBtn">Sair</button>
+  </nav>
+  <main id="main"><div id="content"><div class="loading">Carregando…</div></div></main>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+const SUPABASE_URL = 'https://xctycdmgmotegeqnhljv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_kCcPed4ZypgsfA8ImjZwrw_GxtK2CVQ';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const BRL = v => 'R$ ' + Number(v).toFixed(2).replace('.', ',');
+const DIAS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+let cur = 'dash';
+
+// ---------- AUTH ----------
+async function checkAuth(){
+  const { data:{session} } = await sb.auth.getSession();
+  if(session){ showApp(); } else { $('#login-screen').classList.remove('hidden'); $('#app').classList.add('hidden'); }
+}
+$('#loginForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  $('#loginErr').classList.add('hidden');
+  const { error } = await sb.auth.signInWithPassword({ email:$('#email').value.trim(), password:$('#password').value });
+  if(error){ const el=$('#loginErr'); el.textContent='Email ou senha incorretos.'; el.classList.remove('hidden'); }
+  else showApp();
+});
+$('#forgotLink').addEventListener('click', async e=>{
+  e.preventDefault();
+  const email = $('#email').value.trim() || prompt('Digite seu email:');
+  if(!email) return;
+  const { error } = await sb.auth.resetPasswordForEmail(email);
+  alert(error ? 'Erro: '+error.message : 'Email de recuperação enviado!');
+});
+$('#logoutBtn').addEventListener('click', async ()=>{ await sb.auth.signOut(); location.reload(); });
+function showApp(){ $('#login-screen').classList.add('hidden'); $('#app').classList.remove('hidden'); nav('dash'); }
+
+// ---------- NAV ----------
+$$('.navbtn').forEach(b=>b.addEventListener('click',()=>{ nav(b.dataset.s); $('#sidebar').classList.remove('open'); }));
+$('#menuBtn').addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
+function nav(s){
+  cur=s; $$('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.s===s));
+  ({dash:renderDash,requests:renderRequests,services:renderServices,barbers:renderBarbers,hours:renderHours,closures:renderClosures,promos:renderPromos,faqs:renderFaqs,gallery:renderGallery,settings:renderSettings,export:renderExport}[s])();
+}
+function toolbar(title, sub, extra=''){
+  return `<h2>${title}</h2><div class="subtitle">${sub}</div><div class="toolbar">${extra}</div>`;
+}
+function modal(html){
+  $('#modalRoot').innerHTML = `<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal">${html}</div></div>`;
+}
+function closeModal(){ $('#modalRoot').innerHTML=''; }
+function field(lbl, inner){ return `<label>${lbl}</label>${inner}`; }
+function toast(msg, ok=true){
+  const d=document.createElement('div'); d.className=ok?'okmsg':'error'; d.textContent=msg; d.style.cssText='position:fixed;bottom:20px;right:20px;z-index:99;max-width:300px';
+  document.body.appendChild(d); setTimeout(()=>d.remove(),3500);
+}
+
+// ---------- DASHBOARD ----------
+async function renderDash(){
+  $('#content').innerHTML='<div class="loading">Carregando…</div>';
+  const [svc, req, clo] = await Promise.all([
+    sb.from('services').select('id',{count:'exact'}).eq('active',true),
+    sb.from('appointment_requests').select('id',{count:'exact'}).eq('status','pendente'),
+    sb.from('closures').select('date').gte('date', new Date().toISOString().slice(0,10)).order('date').limit(1)
+  ]);
+  const nextClose = clo.data?.[0]?.date ? new Date(clo.data[0].date+'T12:00').toLocaleDateString('pt-BR') : '—';
+  $('#content').innerHTML = `
+    <h2>Resumo</h2><div class="subtitle">Visão geral do seu negócio</div>
+    <div class="stats">
+      <div class="stat"><div class="num">${svc.count??0}</div><div class="lbl">Serviços ativos</div></div>
+      <div class="stat"><div class="num">${req.count??0}</div><div class="lbl">Solicitações pendentes</div></div>
+      <div class="stat"><div class="num">${nextClose}</div><div class="lbl">Próximo bloqueio</div></div>
+    </div>
+    <div class="card"><h3 style="margin-bottom:8px">💡 Lembrete</h3>
+    <p style="color:var(--mut);font-size:14px">As reservas reais dos clientes continuam no <b>Booksy Biz</b>. Este painel gerencia o conteúdo do site e as solicitações diretas.</p></div>`;
+  const rb=$('#reqBadge'); if((req.count??0)>0){rb.innerHTML=`<span class="badge b-gold">${req.count}</span>`;} else rb.innerHTML='';
+}
+
+// ---------- REQUESTS ----------
+let reqFilter='pendente';
+async function renderRequests(){
+  $('#content').innerHTML='<div class="loading">Carregando…</div>';
+  let q = sb.from('appointment_requests').select('*,services(name)').order('created_at',{ascending:false});
+  if(reqFilter!=='all') q=q.eq('status',reqFilter);
+  const { data } = await q;
+  const rows=(data||[]).map(r=>`
+    <tr><td><b>${esc(r.name)}</b><br><small style="color:var(--mut)">${new Date(r.created_at).toLocaleString('pt-BR')}</small></td>
+    <td><a href="https://wa.me/55${esc(r.phone).replace(/\D/g,'')}" target="_blank" style="color:var(--gold2)">${esc(r.phone)}</a></td>
+    <td>${esc(r.services?.name||'—')}<br><small style="color:var(--mut)">${r.preferred_date?new Date(r.preferred_date+'T12:00').toLocaleDateString('pt-BR'):''} ${r.preferred_time||''}</small></td>
+    <td><span class="badge ${r.status==='pendente'?'b-gold':r.status==='confirmado'?'b-green':'b-red'}">${esc(r.status)}</span></td>
+    <td style="white-space:nowrap">
+      ${r.status!=='confirmado'?`<button class="btn-sm btn-green" onclick="setReq('${r.id}','confirmado')">✓</button>`:''}
+      ${r.status!=='cancelado'?`<button class="btn-sm btn-del" onclick="setReq('${r.id}','cancelado')">✕</button>`:''}
+      <button class="btn-sm btn-edit" onclick='viewReq(${JSON.stringify(r).replace(/'/g,"&#39;")})'>Ver</button>
+    </td></tr>`).join('');
+  $('#content').innerHTML = toolbar('Solicitações','Pedidos de agendamento feitos pelo site',
+    ['pendente','confirmado','cancelado','all'].map(f=>`<button class="btn-sm ${reqFilter===f?'btn-edit':'btn-ghost'}" onclick="reqFilter='${f}';renderRequests()">${f==='all'?'Todas':f[0].toUpperCase()+f.slice(1)}</button>`).join(''))
+    + `<div class="card"><table><tr><th>Cliente</th><th>Telefone</th><th>Serviço</th><th>Status</th><th>Ações</th></tr>${rows||'<tr><td colspan=5 style="text-align:center;color:var(--mut)">Nenhuma solicitação.</td></tr>'}</table></div>`;
+}
+async function setReq(id,st){ const {error}=await sb.from('appointment_requests').update({status:st}).eq('id',id); error?toast(error.message,false):(toast('Atualizado!'),renderRequests()); }
+function viewReq(r){
+  modal(`<h3>${esc(r.name)}</h3><div class="subtitle">${new Date(r.created_at).toLocaleString('pt-BR')}</div>
+  <p><b>Telefone:</b> <a href="https://wa.me/55${esc(r.phone).replace(/\D/g,'')}" target="_blank" style="color:var(--gold2)">${esc(r.phone)}</a></p>
+  <p><b>Email:</b> ${esc(r.email||'—')}</p><p><b>Serviço:</b> ${esc(r.services?.name||'—')}</p>
+  <p><b>Data preferida:</b> ${r.preferred_date?new Date(r.preferred_date+'T12:00').toLocaleDateString('pt-BR'):'—'} ${r.preferred_time||''}</p>
+  <p><b>Obs:</b> ${esc(r.notes||'—')}</p>
+  <div style="display:flex;gap:8px;margin-top:16px"><button class="btn-sm btn-green" onclick="setReq('${r.id}','confirmado');closeModal()">Confirmar</button>
+  <button class="btn-sm btn-del" onclick="setReq('${r.id}','cancelado');closeModal()">Cancelar</button>
+  <button class="btn-sm btn-ghost" onclick="closeModal()">Fechar</button></div>`);
+}
+
+// ---------- SERVICES ----------
+async function renderServices(){
+  $('#content').innerHTML='<div class="loading">Carregando…</div>';
+  const { data } = await sb.from('services').select('*').order('sort_order');
+  const rows=(data||[]).map(s=>`<tr><td><b>${esc(s.name)}</b><br><small style="color:var(--mut)">${esc(s.category||'')}</small></td>
+    <td>${BRL(s.price)}</td><td>${s.duration_minutes} min</td>
+    <td><span class="badge ${s.active?'b-green':'b-gray'}">${s.active?'Ativo':'Inativo'}</span></td>
+    <td style="white-space:nowrap"><button class="btn-sm btn-edit" onclick='editService(${JSON.stringify(s).replace(/'/g,"&#39;")})'>Editar</button>
+    <button class="btn-sm btn-del" onclick="delRow('services','${s.id}')">✕</button></td></tr>`).join('');
+  $('#content').innerHTML = toolbar('Serviços','Catálogo do site',
+    `<div class="spacer"></div><button class="btn-sm btn-gold" style="width:auto" onclick="editService()">+ Novo serviço</button>`)
+    + `<div class="card"><table><tr><th>Serviço</th><th>Preço</th><th>Duração</th><th>Status</th><th>Ações</th></tr>${rows}</table></div>`;
+}
+function editService(s={}){
+  modal(`<h3>${s.id?'Editar':'Novo'} serviço</h3>
+  <form id="svcForm">${field('Nome',`<input id="f_name" value="${esc(s.name||'')}" required>`)}
+  ${field('Descrição',`<textarea id="f_desc">${esc(s.description||'')}</textarea>`)}
+  <div class="grid2">${field('Preço (R$)',`<input id="f_price" type="number" step="0.01" min="0" value="${s.price??''}" required>`)}
+  ${field('Duração (min)',`<input id="f_dur" type="number" min="5" value="${s.duration_minutes??''}" required>`)}</div>
+  <div class="grid2">${field('Categoria',`<select id="f_cat">${['cabelo','barba','combo','tratamento','acabamento'].map(c=>`<option ${s.category===c?'selected':''}>${c}</option>`).join('')}</select>`)}
+  ${field('Ordem',`<input id="f_ord" type="number" value="${s.sort_order??0}">`)}</div>
+  ${field('URL da imagem',`<input id="f_img" value="${esc(s.image_url||'')}">`)}
+  <label style="display:flex;align-items:center;gap:8px;margin-top:12px"><input type="checkbox" id="f_act" ${s.active!==false?'checked':''} style="width:auto"> Ativo</label>
+  <button class="btn-gold" type="submit">Salvar</button>
+  <button type="button" class="btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick="closeModal()">Cancelar</button></form>`);
+  $('#svcForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const obj={name:$('#f_name').value.trim(),description:$('#f_desc').value.trim(),price:+$('#f_price').value,duration_minutes:+$('#f_dur').value,category:$('#f_cat').value,sort_order:+$('#f_ord').value,image_url:$('#f_img').value.trim()||null,active:$('#f_act').checked};
+    const {error}= s.id ? await sb.from('services').update(obj).eq('id',s.id) : await sb.from('services').insert(obj);
+    error?toast(error.message,false):(toast('Salvo!'),closeModal(),renderServices());
+  });
+}
+async function delRow(tbl,id){
+  if(!confirm('Excluir mesmo?'))return;
+  const {error}=await sb.from(tbl).delete().eq('id',id);
+  error?toast(error.message,false):(toast('Excluído.'),nav(cur));
+}
+
+// ---------- BARBERS ----------
+async function renderBarbers(){
+  $('#content').innerHTML='<div class="loading">Carregando…</div>';
+  const { data } = await sb.from('barbers').select('*').order('sort_order');
+  const rows=(data||[]).map(b=>`<tr><td><b>${esc(b.name)}</b><br><small style="color:var(--mut)">${esc(b.specialties||'')}</small></td>
+    <td><span class="badge ${b.active?'b-green':'b-gray'}">${b.active?'Ativo':'Inativo'}</span></td>
+    <td style="white-space:nowrap"><button class="btn-sm btn-edit" onclick='editBarber(${JSON.stringify(b).replace(/'/g,"&#39;")})'>Editar</button>
+    <button class="btn-sm btn-del" onclick="delRow('barbers','${b.id}')">✕</button></td></tr>`).join('');
+  $('#content').innerHTML = toolbar('Equipe','Barbeiros da barbearia',
+    `<div class="spacer"></div><button class="btn-sm btn-gold" style="width:auto" onclick="editBarber()">+ Novo</button>`)
+    + `<div class="card"><table><tr><th>Nome</th><th>Status</th><th>Ações</th></tr>${rows||'<tr><td colspan=3 style="text-align:center;color:var(--mut)">Nenhum barbeiro cadastrado.</td></tr>'}</table></div>`;
+}
+function editBarber(b={}){
+  modal(`<h3>${b.id?'Editar':'Novo'} barbeiro</h3><form id="bForm">
+  ${field('Nome',`<input id="f_name" value="${esc(b.name||'')}" required>`)}
+  ${field('Especialidades',`<input id="f_spec" value="${esc(b.specialties||'')}">`)}
+  ${field('Bio',`<textarea id="f_bio">${esc(b.bio||'')}</textarea>`)}
+  ${field('URL da foto',`<input id="f_photo" value="${esc(b.photo_url||'')}">`)}
+  ${field('Ordem',`<input id="f_ord" type="number" value="${b.sort_order??0}">`)}
+  <label style="display:flex;align-items:center;gap:8px;margin-top:12px"><input type="checkbox" id="f_act" ${b.active!==false?'checked':''} style="width:auto"> Ativo</label>
+  <button class="btn-gold" type="submit">Salvar</button>
+  <button type="button" class="btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick="closeModal()">Cancelar</button></form>`);
+  $('#bForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const obj={name:$('#f_name').value.trim(),specialties:$('#f_spec').value.trim(),bio:$('#f_bio').value.trim(),photo_url:$('#f_photo').value.trim()||null,sort_order:+$('#f_ord').value,active:$('#f_act').checked};
+    const {error}= b.id ? await sb.from('barbers').update(obj).eq('id',b.id) : await sb.from('barbers').insert(obj);
+    error?toast(error.message,false):(toast('Salvo!'),closeModal(),renderBarbers());
+  });
+}
+
+// ---------- HOURS ----------
+async function renderHours(){
+  $('#content').innerHTML='<div class="loading">Carregando…</div>';
+  const { data } = await sb.from('business_hours').select('*').order('day_of_week');
+  const rows=(data||[]).map(h=>`<div class="dayrow"><span class="dname">${DIAS[h.day_of_week]}</span>
+    <label class="switch"><input type="checkbox" data-id="${h.id}" class="h_open" ${!h.is_closed?'checked':''}><span class="sl"></span></label>
+    <input type="time" class="h_in" data-id="${h.id}" value="${h.open_time?h.open_time.slice(0,5):'09:00'}" ${h.is_closed?'disabled':''}>
+    <span style="color:var(--mut)">às</span>
+    <input type="time" class="h_out" data-id="${h.id}" value="${h.close_time?h.close_time.slice(0,5):'19:30'}" ${h.is_closed?'disabled':''}>
+  </div>`).join('');
+  $('#content').innerHTML = toolbar('Horários','Funcionamento semanal')
+    + `<div class="card">${rows}<button class="btn-gold" style="width:auto;margin-top:16px;padding:10px 28px" onclick="saveHours()">Salvar horários</button></div>`;
+  $$('.h_open').forEach(c=>c.addEventListener('change',()=>{
+    const id=c.dataset.id;
+    $$(`.h_in[data-id="${id}"],.h_out[data-id="${id}"]`).forEach(i=>i.disabled=!c.checked);
+  }));
+}
+async function saveHours(){
+  for(const c of $$('.h_open')){
+    const id=c.dataset.id, open=c.checked;
+    await sb.from('business_hours').update({
+      is_closed:!open,
+      open_time: open?$(`.h_in[data-id="${id}"]`).value:null,
+      close_time: open?$(`.h_out[data-id="${id}"]`).value:null
+    }).eq('id',id);
+  }
+  toast('Horários salvos!');
+}
+
+// ---------- CLOSURES ----------
+async function renderClosures(){
+  $('#content').innerHTML='<div class="loading">Carregando…</div>';
+  const { data } = await sb.from('closures').select('*').order('date');
+  const rows=(data||[]).map(c=>`<tr><td>${new Date(c.date+'T12:00').toLocaleDateString('pt-BR')}</td><td>${esc(c.reason||'—')}</td>
+    <td><button class="btn-sm btn-del" onclick="delRow('closures','${c.id}')">✕</button></td></tr>`).join('');
+  $('#content').innerHTML = toolbar('Bloqueios','Feriados e dias fechados',
+    `<div class="spacer"></div><button class="btn-sm btn-gold" style="width:auto" onclick="addClosure()">+ Adicionar</button>`)
+    + `<div class="card"><table><tr><th>Data</th><th>Motivo</th><th></th></tr>${rows||'<tr><td colspan=3 style="text-align:center;color:var(--mut)">Nenhum bloqueio.</td></tr>'}</table></div>`;
+}
+function addClosure(){
+  modal(`<h3>Novo bloqueio</h3><form id="cForm">${field('Data',`<input type="date" id="f_date" required>`)}
+  ${field('Motivo',`<input id="f_reason" placeholder="Ex: Feriado">`)}
+  <button class="btn-gold" type="submit">Salvar</button>
+  <button type="button" class="btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick="closeModal()">Cancelar</button></form>`);
+  $('#cForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const {error}=await sb.from('closures').insert({date:$('#f_date').value,reason:$('#f_reason').value.trim()});
+    error?toast(error.message,false):(toast('Salvo!'),closeModal(),renderClosures());
+  });
+}
+
+// ---------- PROMOS ----------
+async function renderPromos(){
+  $('#content').innerHTML='<div class="loading">Carregando…</div>';
+  const { data } = await sb.from('promotions').select('*').order('created_at',{ascending:false});
+  const rows=(data||[]).map(p=>`<tr><td><b>${esc(p.title)}</b><br><small style="color:var(--mut)">${esc(p.description||'')}</small></td>
+    <td>${p.valid_until?new Date(p.valid_until+'T12:00').toLocaleDateString('pt-BR'):'—'}</td>
+    <td><span class="badge ${p.active?'b-green':'b-gray'}">${p.active?'Ativa':'Inativa'}</span></td>
+    <td style="white-space:nowrap"><button class="btn-sm btn-edit" onclick='editPromo(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Editar</button>
+    <button class="btn-sm btn-del" onclick="delRow('promotions','${p.id}')">✕</button></td></tr>`).join('');
+  $('#content').innerHTML = toolbar('Promoções','Ofertas e pacotes',
+    `<div class="spacer"></div><button class="btn-sm btn-gold" style="width:auto" onclick="editPromo()">+ Nova</button>`)
+    + `<div class="card"><table><tr><th>Título</th><th>Válida até</th><th>Status</th><th>Ações</th></tr>${rows||'<tr><td colspan=4 style="text-align:center;color:var(--mut)">Nenhuma promoção.</td></tr>'}</table></div>`;
+}
+function editPromo(p={}){
+  modal(`<h3>${p.id?'Editar':'Nova'} promoção</h3><form id="pForm">
+  ${field('Título',`<input id="f_title" value="${esc(p.title||'')}" required>`)}
+  ${field('Descrição',`<textarea id="f_desc">${esc(p.description||'')}</textarea>`)}
+  ${field('URL da imagem',`<input id="f_img" value="${esc(p.image_url||'')}">`)}
+  ${field('Válida até',`<input type="date" id="f_valid" value="${p.valid_until||''}">`)}
+  <label style="display:flex;align-items:center;gap:8px;margin-top:12px"><input type="checkbox" id="f_act" ${p.active!==false?'checked':''} style="width:auto"> Ativa</label>
+  <button class="btn-gold" type="submit">Salvar</button>
+  <button type="button" class="btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick="closeModal()">Cancelar</button></form>`);
+  $('#pForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const obj={title:$('#f_title').value.trim(),description:$('#f_desc').value.trim(),image_url:$('#f_img').value.trim()||null,valid_until:$('#f_valid').value||null,active:$('#f_act').checked};
+    const {error}= p.id ? await sb.from('promotions').update(obj).eq('id',p.id) : await sb.from('promotions').insert(obj);
+    error?toast(error.message,false):(toast('Salvo!'),closeModal(),renderPromos());
+  });
+}
+
+// ---------- FAQS ----------
+async function renderFaqs(){
+  $('#content').innerHTML='<div class="loading">Carregando…</div>';
+  const { data } = await sb.from('faqs').select('*').order('sort_order');
+  const rows=(data||[]).map(f=>`<tr><td><b>${esc(f.question)}</b><br><small style="color:var(--mut)">${esc((f.answer||'').slice(0,80))}…</small></td>
+    <td><span class="badge ${f.active?'b-green':'b-gray'}">${f.active?'Ativa':'Inativa'}</span></td>
+    <td style="white-space:nowrap"><button class="btn-sm btn-edit" onclick='editFaq(${JSON.stringify(f).replace(/'/g,"&#39;")})'>Editar</button>
+    <button class="btn-sm btn-del" onclick="delRow('faqs','${f.id}')">✕</button></td></tr>`).join('');
+  $('#content').innerHTML = toolbar('FAQ','Perguntas frequentes',
+    `<div class="spacer"></div><button class="btn-sm btn-gold" style="width:auto" onclick="editFaq()">+ Nova</button>`)
+    + `<div class="card"><table><tr><th>Pergunta</th><th>Status</th><th>Ações</th></tr>${rows||'<tr><td colspan=3 style="text-align:center;color:var(--mut)">Nenhuma pergunta.</td></tr>'}</table></div>`;
+}
+function editFaq(f={}){
+  modal(`<h3>${f.id?'Editar':'Nova'} pergunta</h3><form id="qForm">
+  ${field('Pergunta',`<input id="f_q" value="${esc(f.question||'')}" required>`)}
+  ${field('Resposta',`<textarea id="f_a">${esc(f.answer||'')}</textarea>`)}
+  ${field('Ordem',`<input id="f_ord" type="number" value="${f.sort_order??0}">`)}
+  <label style="display:flex;align-items:center;gap:8px;margin-top:12px"><input type="checkbox" id="f_act" ${f.active!==false?'checked':''} style="width:auto"> Ativa</label>
+  <button class="btn-gold" type="submit">Salvar</button>
+  <button type="button" class="btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick="closeModal()">Cancelar</button></form>`);
+  $('#qForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const obj={question:$('#f_q').value.trim(),answer:$('#f_a').value.trim(),sort_order:+$('#f_ord').value,active:$('#f_act').checked};
+    const {error}= f.id ? await sb.from('faqs').update(obj).eq('id',f.id) : await sb.from('faqs').insert(obj);
+    error?toast(error.message,false):(toast('Salvo!'),closeModal(),renderFaqs());
+  });
+}
+
+// ---------- GALLERY ----------
+async function renderGallery(){
+  $('#content').innerHTML='<div class="loading">Carregando…</div>';
+  const { data } = await sb.from('gallery_images').select('*').order('sort_order');
+  const rows=(data||[]).map(g=>`<tr><td>${g.image_url?`<img src="${esc(g.image_url)}" class="imgprev" style="max-height:60px">`:''}</td>
+    <td>${esc(g.caption||'—')}</td>
+    <td style="white-space:nowrap"><button class="btn-sm btn-edit" onclick='editGallery(${JSON.stringify(g).replace(/'/g,"&#39;")})'>Editar</button>
+    <button class="btn-sm btn-del" onclick="delRow('gallery_images','${g.id}')">✕</button></td></tr>`).join('');
+  $('#content').innerHTML = toolbar('Galeria','Fotos do site',
+    `<div class="spacer"></div><button class="btn-sm btn-gold" style="width:auto" onclick="editGallery()">+ Nova</button>`)
+    + `<div class="card"><table><tr><th>Foto</th><th>Legenda</th><th>Ações</th></tr>${rows||'<tr><td colspan=3 style="text-align:center;color:var(--mut)">Nenhuma foto.</td></tr>'}</table></div>`;
+}
+function editGallery(g={}){
+  modal(`<h3>${g.id?'Editar':'Nova'} foto</h3><form id="gForm">
+  ${field('URL da imagem',`<input id="f_url" value="${esc(g.image_url||'')}" required oninput="document.getElementById('pv').src=this.value">`)}
+  <img id="pv" class="imgprev ${g.image_url?'':'hidden'}" src="${esc(g.image_url||'')}">
+  ${field('Legenda',`<input id="f_cap" value="${esc(g.caption||'')}">`)}
+  ${field('Ordem',`<input id="f_ord" type="number" value="${g.sort_order??0}">`)}
+  <button class="btn-gold" type="submit">Salvar</button>
+  <button type="button" class="btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick="closeModal()">Cancelar</button></form>`);
+  $('#gForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const obj={image_url:$('#f_url').value.trim(),caption:$('#f_cap').value.trim(),sort_order:+$('#f_ord').value};
+    const {error}= g.id ? await sb.from('gallery_images').update(obj).eq('id',g.id) : await sb.from('gallery_images').insert(obj);
+    error?toast(error.message,false):(toast('Salvo!'),closeModal(),renderGallery());
+  });
+}
+
+// ---------- SETTINGS ----------
+const SETTING_LABELS={address:'Endereço',whatsapp:'WhatsApp (só números, com DDD)',instagram:'Instagram (URL)',booksy:'Booksy (URL)'};
+async function renderSettings(){
+  $('#content').innerHTML='<div class="loading">Carregando…</div>';
+  const { data } = await sb.from('business_settings').select('*');
+  const map={}; (data||[]).forEach(s=>map[s.key]=s.value);
+  const fields=Object.entries(SETTING_LABELS).map(([k,l])=>field(l,`<input id="set_${k}" value="${esc(map[k]||'')}">`)).join('');
+  $('#content').innerHTML = toolbar('Configurações','Dados de contato e links')
+    + `<div class="card"><form id="setForm">${fields}
+    <button class="btn-gold" style="width:auto;padding:10px 28px" type="submit">Salvar</button></form></div>`;
+  $('#setForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    for(const k of Object.keys(SETTING_LABELS)){
+      await sb.from('business_settings').upsert({key:k,value:$('#set_'+k).value.trim()},{onConflict:'key'});
+    }
+    toast('Configurações salvas!');
+  });
+}
+
+// ---------- EXPORT ----------
+async function renderExport(){
+  $('#content').innerHTML = toolbar('Exportar','Baixar backup do conteúdo')
+  + `<div class="card"><p style="color:var(--mut);margin-bottom:16px">Baixa um arquivo JSON com todo o conteúdo público (serviços, horários, etc.). Guarde como backup.</p>
+  <button class="btn-gold" style="width:auto;padding:12px 28px" onclick="doExport()">💾 Baixar JSON</button></div>`;
+}
+async function doExport(){
+  const tables=['services','barbers','business_hours','promotions','faqs','gallery_images','business_settings'];
+  const out={exported_at:new Date().toISOString(),business:'Kings Barbershop'};
+  for(const t of tables){ const {data}=await sb.from(t).select('*'); out[t]=data; }
+  const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='kings-barbershop-backup-'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+  toast('Backup baixado!');
+}
+
+checkAuth();
+</script>
+</body>
+</html>
